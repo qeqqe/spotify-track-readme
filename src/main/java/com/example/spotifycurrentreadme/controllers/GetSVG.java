@@ -1,6 +1,7 @@
 package com.example.spotifycurrentreadme.controllers;
 
-import com.example.spotifycurrentreadme.services.SpotifyAuth;
+import com.example.spotifycurrentreadme.services.TrackService;
+import com.example.spotifycurrentreadme.types.CurrentPlayingRes;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,15 +9,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/get-svg")
 public class GetSVG {
-    private final SpotifyAuth spotifyAuth;
+    private final TrackService trackService;
 
-    public GetSVG(SpotifyAuth spotifyAuth) {
-        this.spotifyAuth = spotifyAuth;
+    public GetSVG(TrackService trackService) {
+        this.trackService = trackService;
     }
-//    test
-//    @GetMapping("/")
-//    public String getToken() {
-//        return spotifyAuth.getToken();
-//    }
 
+    @GetMapping("/")
+    public CurrentPlayingRes getCurrentTrack() {
+        return trackService.getTrackInfo();
+    }
 }

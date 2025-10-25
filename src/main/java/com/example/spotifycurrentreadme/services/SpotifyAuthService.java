@@ -2,13 +2,10 @@ package com.example.spotifycurrentreadme.services;
 
 import com.example.spotifycurrentreadme.types.AuthPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.zxing.NotFoundException;
 import dev.samstevens.totp.code.CodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
 import dev.samstevens.totp.code.HashingAlgorithm;
 import dev.samstevens.totp.exceptions.CodeGenerationException;
-import dev.samstevens.totp.time.SystemTimeProvider;
-import dev.samstevens.totp.time.TimeProvider;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,17 +24,15 @@ import java.util.Date;
 import java.util.Map;
 
 @Service
-public class SpotifyAuth {
+public class SpotifyAuthService {
     @Value("${spotify.sp_dc}")
     private String SP_DC;
-    private CodeGenerator codeGenerator = new DefaultCodeGenerator(
+    private final CodeGenerator codeGenerator = new DefaultCodeGenerator(
             HashingAlgorithm.SHA1,
             6
     );
-    private TimeProvider timeProvider = new SystemTimeProvider();
     private final int FETCH_INTERVAL = 60 * 60 * 1000;
     private final String userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
-    private final String SECRETS_URL = "https://raw.githubusercontent.com/xyloflake/spot-secrets-go/refs/heads/main/secrets/secretDict.json";
     private String currentTotpVersion = null;
     private String currentTotp = null;
     private String updatePromise = null;
@@ -46,7 +41,7 @@ public class SpotifyAuth {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public SpotifyAuth() {
+    public SpotifyAuthService() {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -82,6 +77,7 @@ public class SpotifyAuth {
     }
 
     private Map<String, Object> fetchSecretsFromGitHub() throws Exception {
+        String SECRETS_URL = "https://raw.githubusercontent.com/xyloflake/spot-secrets-go/refs/heads/main/secrets/secretDict.json";
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(SECRETS_URL))
                 .GET()
@@ -142,13 +138,11 @@ public class SpotifyAuth {
                 @SuppressWarnings("unchecked")
                 ArrayList<Integer> secretList = (ArrayList<Integer>) secrets.get(newestVersion);
                 int[] secretData = secretList.stream().mapToInt(Integer::intValue).toArray();
-                
+
                 currentTotp = createTotpSecret(secretData);
                 currentTotpVersion = newestVersion;
-                lastFetchTime = now;
-            } else {
-                lastFetchTime = now;
             }
+            lastFetchTime = now;
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -263,9 +257,7 @@ public class SpotifyAuth {
 
             Map<String, Object> data = objectMapper.readValue(response.body(), Map.class);
             return (String) data.get("accessToken");
-        } catch (CodeGenerationException e) {
-            throw new RuntimeException(e);
-        } catch (IOException | InterruptedException e) {
+        } catch (CodeGenerationException | IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
