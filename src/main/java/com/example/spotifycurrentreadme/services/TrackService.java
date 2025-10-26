@@ -110,7 +110,7 @@ public class TrackService {
                             track.name(),
                             data.progress_ms(),
                             track.duration_ms(),
-                            track.album().images().get(0).url(),
+                            track.album().images().get(1).url(),
                             track.uri(),
                             track.album().uri().split(":")[2],
                             true
@@ -182,7 +182,7 @@ public class TrackService {
                         track.name(),
                         0,
                         track.duration_ms(),
-                        track.album().images().get(0).url(),
+                        track.album().images().get(1).url(),
                         track.uri(),
                         track.album().uri().split(":")[2],
                         false

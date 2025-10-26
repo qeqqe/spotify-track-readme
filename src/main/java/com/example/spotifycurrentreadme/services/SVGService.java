@@ -3,6 +3,9 @@ package com.example.spotifycurrentreadme.services;
 import com.example.spotifycurrentreadme.types.CurrentPlayingRes;
 import org.springframework.stereotype.Service;
 
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Base64;
 import java.util.Random;
 
 @Service
@@ -96,7 +99,7 @@ public class SVGService {
                 </circle>
             </svg>
             """.formatted(
-                    track.imageUrl(),
+                    getAlbumImageAsBase64(track.imageUrl()),
                     truncateText(track.name(),22),
                     truncateText(track.artist(), 25),
                     progressWidth,
@@ -185,7 +188,7 @@ public class SVGService {
             <circle cx="385" cy="25" r="3" fill="#666666" opacity="0.6"/>
         </svg>
         """.formatted(
-                track.imageUrl(),
+                getAlbumImageAsBase64(track.imageUrl()),
                 truncateText(track.name(), 22),
                 truncateText(track.artist(), 30),
                 progressWidth,
@@ -253,4 +256,21 @@ public class SVGService {
                 .replace("'", "&apos;");
     }
 
+    private String getAlbumImageAsBase64(String imageUrl) {
+        try {
+            URL url = new URL(imageUrl);
+            URLConnection connection = url.openConnection();
+            String mimeType = connection.getContentType();
+            if (mimeType == null) {
+                mimeType = "image/jpeg";
+            }
+            java.io.InputStream in = connection.getInputStream();
+            byte[] bytes = in.readAllBytes();
+            String base64 = Base64.getEncoder().encodeToString(bytes);
+            return "data:" + mimeType + ";base64," + base64;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 }
