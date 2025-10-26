@@ -27,7 +27,8 @@ public class SVGService {
 
     private String generateNowPlayingSVG(CurrentPlayingRes track){
         int progressWidth = calculateProgressWidth(track.durationMs(), track.progressMs());
-        // svg is not my thing ok?
+        int remainingSeconds = calculateRemainingSeconds(track.durationMs(), track.progressMs());
+
         return """
             <svg width="400" height="120" xmlns="http://www.w3.org/2000/svg">
                 <defs>
@@ -38,19 +39,129 @@ public class SVGService {
                     <clipPath id="rounded">
                         <rect width="400" height="120" rx="10" ry="10"/>
                     </clipPath>
+                    <clipPath id="album-clip">
+                        <rect x="10" y="10" width="100" height="100" rx="8"/>
+                    </clipPath>
                 </defs>
+                
+                <style>
+                    @keyframes progressBar {
+                        from { width: %dpx; }
+                        to { width: 270px; }
+                    }
+                    
+                    @keyframes pulse {
+                        0%%, 100%% { opacity: 1; }
+                        50%% { opacity: 0.3; }
+                    }
+                    
+                    @keyframes eq1 {
+                        0%%, 100%% { height: 8px; }
+                        25%% { height: 15px; }
+                        50%% { height: 12px; }
+                        75%% { height: 18px; }
+                    }
+                    
+                    @keyframes eq1Y {
+                        0%%, 100%% { y: 92px; }
+                        25%% { y: 85px; }
+                        50%% { y: 88px; }
+                        75%% { y: 82px; }
+                    }
+                    
+                    @keyframes eq2 {
+                        0%%, 100%% { height: 15px; }
+                        25%% { height: 12px; }
+                        50%% { height: 18px; }
+                        75%% { height: 10px; }
+                    }
+                    
+                    @keyframes eq2Y {
+                        0%%, 100%% { y: 85px; }
+                        25%% { y: 88px; }
+                        50%% { y: 82px; }
+                        75%% { y: 90px; }
+                    }
+                    
+                    @keyframes eq3 {
+                        0%%, 100%% { height: 12px; }
+                        25%% { height: 18px; }
+                        50%% { height: 10px; }
+                        75%% { height: 8px; }
+                    }
+                    
+                    @keyframes eq3Y {
+                        0%%, 100%% { y: 88px; }
+                        25%% { y: 82px; }
+                        50%% { y: 90px; }
+                        75%% { y: 92px; }
+                    }
+                    
+                    @keyframes eq4 {
+                        0%%, 100%% { height: 18px; }
+                        25%% { height: 10px; }
+                        50%% { height: 8px; }
+                        75%% { height: 15px; }
+                    }
+                    
+                    @keyframes eq4Y {
+                        0%%, 100%% { y: 82px; }
+                        25%% { y: 90px; }
+                        50%% { y: 92px; }
+                        75%% { y: 85px; }
+                    }
+                    
+                    @keyframes eq5 {
+                        0%%, 100%% { height: 10px; }
+                        25%% { height: 8px; }
+                        50%% { height: 15px; }
+                        75%% { height: 12px; }
+                    }
+                    
+                    @keyframes eq5Y {
+                        0%%, 100%% { y: 90px; }
+                        25%% { y: 92px; }
+                        50%% { y: 85px; }
+                        75%% { y: 88px; }
+                    }
+                    
+                    .progress-bar {
+                        animation: progressBar %ds linear forwards;
+                    }
+                    
+                    .pulse-indicator {
+                        animation: pulse 1.5s ease-in-out infinite;
+                    }
+                    
+                    .eq-bar-1 {
+                        animation: eq1 0.6s ease-in-out infinite, eq1Y 0.6s ease-in-out infinite;
+                    }
+                    
+                    .eq-bar-2 {
+                        animation: eq2 0.7s ease-in-out infinite, eq2Y 0.7s ease-in-out infinite;
+                    }
+                    
+                    .eq-bar-3 {
+                        animation: eq3 0.8s ease-in-out infinite, eq3Y 0.8s ease-in-out infinite;
+                    }
+                    
+                    .eq-bar-4 {
+                        animation: eq4 0.9s ease-in-out infinite, eq4Y 0.9s ease-in-out infinite;
+                    }
+                    
+                    .eq-bar-5 {
+                        animation: eq5 1.0s ease-in-out infinite, eq5Y 1.0s ease-in-out infinite;
+                    }
+                </style>
                 
                 <!-- Background -->
                 <rect width="400" height="120" fill="url(#grad)" clip-path="url(#rounded)"/>
                 
                 <!-- Album Art with rounded corners -->
-                <clipPath id="album-clip">
-                    <rect x="10" y="10" width="100" height="100" rx="8"/>
-                </clipPath>
                 <image x="10" y="10" width="100" height="100" 
                        href="%s" clip-path="url(#album-clip)"/>
                 
-                <!-- Song Title (with truncation) -->
+                <!-- Song Title -->
                 <text x="120" y="35" fill="white" 
                       font-family="Arial, sans-serif" 
                       font-size="16" 
@@ -69,17 +180,11 @@ public class SVGService {
                 <rect x="120" y="70" width="270" height="4" 
                       fill="#404040" rx="2"/>
                 
-                <!-- Progress Bar Fill with animation -->
-                <rect x="120" y="70" width="%d" height="4" 
-                      fill="#1DB954" rx="2">
-                    <animate attributeName="width" 
-                             from="%d" 
-                             to="270" 
-                             dur="%ds" 
-                             fill="freeze"/>
-                </rect>
+                <!-- Progress Bar Fill with CSS animation -->
+                <rect class="progress-bar" x="120" y="70" width="%d" height="4" 
+                      fill="#1DB954" rx="2"/>
                 
-                <!-- Time stamps -->
+                <!-- Time stamp -->
                 <text x="385" y="90" fill="#b3b3b3" 
                       font-family="Arial, sans-serif" 
                       font-size="11" 
@@ -87,33 +192,29 @@ public class SVGService {
                     %s
                 </text>
                 
-                <!-- Equalizer bars -->
-                %s
+                <!-- Equalizer bars with CSS animations -->
+                <rect class="eq-bar-1" x="130" y="92" width="4" height="8" fill="#1DB954" rx="2"/>
+                <rect class="eq-bar-2" x="136" y="85" width="4" height="15" fill="#1DB954" rx="2"/>
+                <rect class="eq-bar-3" x="142" y="88" width="4" height="12" fill="#1DB954" rx="2"/>
+                <rect class="eq-bar-4" x="148" y="82" width="4" height="18" fill="#1DB954" rx="2"/>
+                <rect class="eq-bar-5" x="154" y="90" width="4" height="10" fill="#1DB954" rx="2"/>
                 
-                <!-- Playing indicator -->
-                <circle cx="385" cy="25" r="3" fill="#1DB954">
-                    <animate attributeName="opacity" 
-                             values="1;0.3;1" 
-                             dur="1.5s" 
-                             repeatCount="indefinite"/>
-                </circle>
+                <!-- Playing indicator with CSS animation -->
+                <circle class="pulse-indicator" cx="385" cy="25" r="3" fill="#1DB954"/>
             </svg>
             """.formatted(
-                    getAlbumImageAsBase64(track.imageUrl()),
-                    truncateText(track.name(),22),
-                    truncateText(track.artist(), 25),
-                    progressWidth,
-                    progressWidth,
-                    calculateRemainingSeconds(track.durationMs(), track.progressMs()),
-                    formatTime(track.durationMs()),
-                    generateEqualizerBars()
+                progressWidth,
+                remainingSeconds,
+                getAlbumImageAsBase64(track.imageUrl()),
+                truncateText(track.name(), 22),
+                truncateText(track.artist(), 25),
+                progressWidth,
+                formatTime(track.durationMs())
         );
     }
 
-
     private String generateRecentlyPlayedSVG(CurrentPlayingRes track) {
         long randomProgress = track.durationMs() * (30 + new Random().nextInt(41)) / 100;
-        // since we get no progress_ms in recent tracks, we just go random...
         int progressWidth = calculateProgressWidth(track.durationMs(), randomProgress);
 
         return """
@@ -196,6 +297,7 @@ public class SVGService {
                 formatTime(track.durationMs())
         );
     }
+
     private int calculateProgressWidth(long durationMs, long progressMs) {
         double progress = (double) progressMs / durationMs;
         return (int) (270 * progress);
@@ -203,35 +305,6 @@ public class SVGService {
 
     private int calculateRemainingSeconds(long durationMs, long progressMs) {
         return (int) ((durationMs - progressMs) / 1000);
-    }
-
-    private String generateEqualizerBars() {
-        StringBuilder bars = new StringBuilder();
-        int[] heights = {8, 15, 12, 18, 10};
-
-        for (int i = 0; i < 5; i++) {
-            int x = 130 + (i * 6);
-            bars.append("""
-                <rect x="%d" y="%d" width="4" height="%d" fill="#1DB954" rx="2">
-                    <animate attributeName="height" 
-                             values="%d;%d;%d;%d;%d" 
-                             dur="%ss" 
-                             repeatCount="indefinite"/>
-                    <animate attributeName="y" 
-                             values="%d;%d;%d;%d;%d" 
-                             dur="%ss" 
-                             repeatCount="indefinite"/>
-                </rect>
-                """.formatted(
-                    x, 100 - heights[i], heights[i],
-                    heights[i], heights[(i+1)%5], heights[(i+2)%5], heights[(i+3)%5], heights[i],
-                    0.6 + (i * 0.1),
-                    100 - heights[i], 100 - heights[(i+1)%5], 100 - heights[(i+2)%5], 100 - heights[(i+3)%5], 100 - heights[i],
-                    0.6 + (i * 0.1)
-            ));
-        }
-
-        return bars.toString();
     }
 
     private String formatTime(long ms) {
