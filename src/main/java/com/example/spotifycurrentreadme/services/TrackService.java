@@ -84,7 +84,6 @@ public class TrackService {
                     }
 
                     if (response.statusCode() == 204) {
-                        System.out.println("No track currently playing");
                         return null;
                     }
                     if (response.statusCode() != 200) {
@@ -97,12 +96,24 @@ public class TrackService {
                     );
 
                     SpotifyCurrentlyPlaying.Track track = data.item();
+                    StringBuilder artistNames = new StringBuilder();
+                    for (int i = 0; i < track.album().artists().size(); i++) {
+                        artistNames.append(track.album().artists().get(i).name());
+                        if (i < track.album().artists().size() - 1) {
+                            artistNames.append(", ");
+                        }
+                    }
 
                     return new CurrentPlayingRes(
                             track.id(),
+                            artistNames.toString(),
+                            track.name(),
+                            data.progress_ms(),
+                            track.duration_ms(),
                             track.album().images().get(0).url(),
                             track.uri(),
-                            track.album().uri().split(":")[2]
+                            track.album().uri().split(":")[2],
+                            true
                     );
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
@@ -156,11 +167,25 @@ public class TrackService {
                 SpotifyResponse data = objectMapper.readValue(response.body(), SpotifyResponse.class);
                 SpotifyRecentTrack track = data.items().get(0).track();
 
+                StringBuilder artistNames = new StringBuilder();
+
+                for (int i = 0; i < track.album().artists().size(); i++) {
+                    artistNames.append(track.album().artists().get(i).name());
+                    if (i < track.album().artists().size() - 1) {
+                        artistNames.append(", ");
+                    }
+                }
+
                 return new CurrentPlayingRes(
                         track.id(),
+                        artistNames.toString(),
+                        track.name(),
+                        0,
+                        track.duration_ms(),
                         track.album().images().get(0).url(),
                         track.uri(),
-                        track.album().uri().split(":")[2]
+                        track.album().uri().split(":")[2],
+                        false
                 );
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);

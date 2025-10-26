@@ -7,11 +7,16 @@ import java.util.List;
 public record SpotifyRecentTrack(
         String id,
         String uri,
-        Album album
+        Album album,
+        long duration_ms,
+        String name
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Album(String uri, List<Image> images) {}
+    public record Album(String uri, List<Image> images, List<Artist> artists) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Image(String url) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Artist(String name) {}
 }
