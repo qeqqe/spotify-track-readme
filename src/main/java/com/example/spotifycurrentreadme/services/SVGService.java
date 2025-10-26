@@ -77,11 +77,6 @@ public class SVGService {
                 </rect>
                 
                 <!-- Time stamps -->
-                <text x="120" y="90" fill="#b3b3b3" 
-                      font-family="Arial, sans-serif" 
-                      font-size="11">
-                    %s
-                </text>
                 <text x="385" y="90" fill="#b3b3b3" 
                       font-family="Arial, sans-serif" 
                       font-size="11" 
@@ -107,7 +102,6 @@ public class SVGService {
                     progressWidth,
                     progressWidth,
                     calculateRemainingSeconds(track.durationMs(), track.progressMs()),
-                    formatTime(track.progressMs()),
                     formatTime(track.durationMs()),
                     generateEqualizerBars()
         );
@@ -213,7 +207,7 @@ public class SVGService {
         int[] heights = {8, 15, 12, 18, 10};
 
         for (int i = 0; i < 5; i++) {
-            int x = 240 + (i * 6);
+            int x = 130 + (i * 6);
             bars.append("""
                 <rect x="%d" y="%d" width="4" height="%d" fill="#1DB954" rx="2">
                     <animate attributeName="height" 

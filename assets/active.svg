@@ -1,0 +1,110 @@
+<svg width="400" height="120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1DB954;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#191414;stop-opacity:1" />
+        </linearGradient>
+        <clipPath id="rounded">
+            <rect width="400" height="120" rx="10" ry="10"/>
+        </clipPath>
+    </defs>
+
+    <rect width="400" height="120" fill="url(#grad)" clip-path="url(#rounded)"/>
+
+    <clipPath id="album-clip">
+        <rect x="10" y="10" width="100" height="100" rx="8"/>
+    </clipPath>
+    <image x="10" y="10" width="100" height="100"
+           href="https://i.scdn.co/image/ab67616d0000b273b8b441db3d0370a8868400ed" clip-path="url(#album-clip)"/>
+
+    <text x="120" y="35" fill="white"
+          font-family="Arial, sans-serif"
+          font-size="16"
+          font-weight="bold">
+        ひなたぼっこ
+    </text>
+
+    <text x="120" y="55" fill="#b3b3b3"
+          font-family="Arial, sans-serif"
+          font-size="13">
+        Kikiyama, Infinity
+    </text>
+
+    <rect x="120" y="70" width="270" height="4"
+          fill="#404040" rx="2"/>
+
+    <rect x="120" y="70" width="33" height="4"
+          fill="#1DB954" rx="2">
+        <animate attributeName="width"
+                 from="33"
+                 to="270"
+                 dur="154s"
+                 fill="freeze"/>
+    </rect>
+
+    <text x="385" y="90" fill="#b3b3b3"
+          font-family="Arial, sans-serif"
+          font-size="11"
+          text-anchor="end">
+        2:56
+    </text>
+
+    <rect x="130" y="92" width="4" height="8" fill="#1DB954" rx="2">
+        <animate attributeName="height"
+                 values="8;15;12;18;8"
+                 dur="0.6s"
+                 repeatCount="indefinite"/>
+        <animate attributeName="y"
+                 values="92;85;88;82;92"
+                 dur="0.6s"
+                 repeatCount="indefinite"/>
+    </rect>
+    <rect x="136" y="85" width="4" height="15" fill="#1DB954" rx="2">
+        <animate attributeName="height"
+                 values="15;12;18;10;15"
+                 dur="0.7s"
+                 repeatCount="indefinite"/>
+        <animate attributeName="y"
+                 values="85;88;82;90;85"
+                 dur="0.7s"
+                 repeatCount="indefinite"/>
+    </rect>
+    <rect x="142" y="88" width="4" height="12" fill="#1DB954" rx="2">
+        <animate attributeName="height"
+                 values="12;18;10;8;12"
+                 dur="0.8s"
+                 repeatCount="indefinite"/>
+        <animate attributeName="y"
+                 values="88;82;90;92;88"
+                 dur="0.8s"
+                 repeatCount="indefinite"/>
+    </rect>
+    <rect x="148" y="82" width="4" height="18" fill="#1DB954" rx="2">
+        <animate attributeName="height"
+                 values="18;10;8;15;18"
+                 dur="0.9s"
+                 repeatCount="indefinite"/>
+        <animate attributeName="y"
+                 values="82;90;92;85;82"
+                 dur="0.9s"
+                 repeatCount="indefinite"/>
+    </rect>
+    <rect x="154" y="90" width="4" height="10" fill="#1DB954" rx="2">
+        <animate attributeName="height"
+                 values="10;8;15;12;10"
+                 dur="1.0s"
+                 repeatCount="indefinite"/>
+        <animate attributeName="y"
+                 values="90;92;85;88;90"
+                 dur="1.0s"
+                 repeatCount="indefinite"/>
+    </rect>
+
+
+    <circle cx="385" cy="25" r="3" fill="#1DB954">
+        <animate attributeName="opacity"
+                 values="1;0.3;1"
+                 dur="1.5s"
+                 repeatCount="indefinite"/>
+    </circle>
+</svg>
