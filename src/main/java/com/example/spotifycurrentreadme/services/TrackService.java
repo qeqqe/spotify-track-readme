@@ -1,221 +1,192 @@
 package com.example.spotifycurrentreadme.services;
 
 import com.example.spotifycurrentreadme.types.CurrentPlayingRes;
-import com.example.spotifycurrentreadme.types.SpotifyCurrentlyPlaying;
-import com.example.spotifycurrentreadme.types.SpotifyRecentTrack;
-import com.example.spotifycurrentreadme.types.SpotifyResponse;
+import com.example.spotifycurrentreadme.types.FmCurrentPlaying;
+import com.example.spotifycurrentreadme.types.FmTrackInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 
 @Service
 public class TrackService {
-    private final SpotifyAuthService spotifyAuthService;
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
+  @Value("${last.fm.api.key}")
+  private String apiKey;
 
-    public TrackService(SpotifyAuthService spotifyAuthService) {
-        this.spotifyAuthService = spotifyAuthService;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.objectMapper = new ObjectMapper();
+  @Value("${last.fm.username}")
+  private String username;
+
+  private final HttpClient httpClient;
+  private final ObjectMapper objectMapper;
+
+  public TrackService() {
+    this.httpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build();
+    this.objectMapper = new ObjectMapper();
+  }
+
+  public CurrentPlayingRes getTrackInfo() {
+    try {
+      CurrentPlayingRes currentTrack = getCurrentTrack();
+      if (currentTrack != null) {
+        return currentTrack;
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Error fetching track info: " + e.getMessage(), e);
     }
+    return null;
+  }
 
-    public CurrentPlayingRes getTrackInfo() {
-        try {
-            CurrentPlayingRes currentTrack = getCurrentTrack();
-            if (currentTrack != null) {
-                return currentTrack;
-            } else {
-                return getRecentlyPlayedTrack();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching track info: " + e.getMessage(), e);
+  public CurrentPlayingRes getCurrentTrack() {
+    final int MAX_RETRIES = 2;
+
+    for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+
+        URI recentTracksUri = URI.create(String.format(
+            "https://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=%s&api_key=%s&format=json&limit=1",
+            this.username, this.apiKey));
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(recentTracksUri)
+            .GET()
+            .timeout(Duration.ofSeconds(10))
+            .build();
+
+        HttpResponse<String> response = httpClient.send(
+            request,
+            HttpResponse.BodyHandlers.ofString());
+
+        // wait and retry
+        if (response.statusCode() == 429) {
+          String retryAfter = response.headers().firstValue("Retry-After").orElse("1");
+          int waitTime = Integer.parseInt(retryAfter) * 1000;
+          System.out.println("Rate limited, waiting " + waitTime + "ms...");
+          Thread.sleep(waitTime);
+          continue;
         }
-    }
 
-    public CurrentPlayingRes getCurrentTrack() {
-        final int MAX_RETRIES = 2;
-        
-        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
-            try {
-                String accessToken = spotifyAuthService.getAccessToken();
-                
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("https://api.spotify.com/v1/me/player/currently-playing"))
-                        .GET()
-                        .header("Authorization", "Bearer " + accessToken)
-                        .timeout(Duration.ofSeconds(10))
-                        .build();
-
-                HttpResponse<String> response = httpClient.send(
-                        request, 
-                        HttpResponse.BodyHandlers.ofString()
-                );
-
-                // 204 No Content - nothing playing
-                if (response.statusCode() == 204) {
-                    return null;
-                }
-
-                // refresh token and retry once
-                if (response.statusCode() == 401) {
-                    System.out.println("Got 401, clearing cache and retrying...");
-                    spotifyAuthService.clearCache();
-                    continue;
-                }
-
-                //  wait and retry
-                if (response.statusCode() == 429) {
-                    String retryAfter = response.headers().firstValue("Retry-After").orElse("1");
-                    int waitTime = Integer.parseInt(retryAfter) * 1000;
-                    System.out.println("Rate limited, waiting " + waitTime + "ms...");
-                    Thread.sleep(waitTime);
-                    continue;
-                }
-
-                // non-2xx responses
-                if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    System.err.println("Failed to get current track: " + response.statusCode() + " - " + response.body());
-                    return null;
-                }
-
-                SpotifyCurrentlyPlaying data = objectMapper.readValue(
-                        response.body(),
-                        SpotifyCurrentlyPlaying.class
-                );
-
-                if (data.item() == null) {
-                    return null;
-                }
-
-                SpotifyCurrentlyPlaying.Track track = data.item();
-                
-                StringBuilder artistNames = new StringBuilder();
-                for (int i = 0; i < track.album().artists().size(); i++) {
-                    artistNames.append(track.album().artists().get(i).name());
-                    if (i < track.album().artists().size() - 1) {
-                        artistNames.append(", ");
-                    }
-                }
-
-                return new CurrentPlayingRes(
-                        track.id(),
-                        artistNames.toString(),
-                        track.name(),
-                        data.progress_ms(),
-                        track.duration_ms(),
-                        track.album().images().get(1).url(),
-                        track.uri(),
-                        track.album().uri().split(":")[2],
-                        true
-                );
-                
-            } catch (IOException | InterruptedException e) {
-                System.err.println("Error fetching current track (attempt " + (attempt + 1) + "): " + e.getMessage());
-                if (attempt == MAX_RETRIES - 1) {
-                    return null;
-                }
-            } catch (Exception e) {
-                System.err.println("Unexpected error: " + e.getMessage());
-                return null;
-            }
+        // non-2xx responses
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+          System.err.println("Failed to get current track: " + response.statusCode() + " - " + response.body());
+          return null;
         }
-        
+
+        FmCurrentPlaying data = objectMapper.readValue(
+            response.body(),
+            FmCurrentPlaying.class);
+
+        if (data.recentTracks() == null) {
+          return null;
+        }
+
+        FmCurrentPlaying.Track track = data.recentTracks().track().get(0);
+
+        String artist = track.artist().name();
+        String trackName = track.name();
+        FmTrackInfo info = this.getTrackInfo(trackName, artist);
+
+        String coverUrl = null;
+        if (info != null && info.track() != null
+            && info.track().album() != null
+            && info.track().album().coverUrl() != null
+            && !info.track().album().coverUrl().isBlank()) {
+          coverUrl = info.track().album().coverUrl();
+        } else {
+          coverUrl = track.coverUrl();
+        }
+        List<String> tags = (info != null
+            && info.track() != null
+            && info.track().toptags() != null
+            && info.track().toptags().tag() != null)
+                ? info.track().toptags().tag().stream().map(FmTrackInfo.Tag::name).toList()
+                : List.of();
+
+        Long duration = info.track().durationMs();
+
+        if (duration == 0L) {
+          duration = 210000L;
+        }
+
+        return new CurrentPlayingRes(
+            artist,
+            trackName,
+            coverUrl,
+            track.isNowPlaying(),
+            info.track().durationMs(),
+            tags);
+      } catch (IOException | InterruptedException e) {
+        System.err.println("Error fetching current track (attempt " + (attempt + 1) + "): " + e.getMessage());
+        if (attempt == MAX_RETRIES - 1) {
+          return null;
+        }
+      } catch (Exception e) {
+        System.err.println("Unexpected error: " + e.getMessage());
         return null;
+      }
     }
 
-    private CurrentPlayingRes getRecentlyPlayedTrack() {
-        final int MAX_RETRIES = 2;
-        
-        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
-            try {
-                String accessToken = spotifyAuthService.getAccessToken();
-                
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("https://api.spotify.com/v1/me/player/recently-played?limit=1"))
-                        .GET()
-                        .header("Authorization", "Bearer " + accessToken)
-                        .timeout(Duration.ofSeconds(10))
-                        .build();
+    return null;
+  }
 
-                HttpResponse<String> response = httpClient.send(
-                        request, 
-                        HttpResponse.BodyHandlers.ofString()
-                );
+  private FmTrackInfo getTrackInfo(String trackName, String artistName) throws IOException, InterruptedException {
+    FmTrackInfo info = null;
 
-                // refresh token and retry once
-                if (response.statusCode() == 401) {
-                    System.out.println("Got 401, clearing cache and retrying...");
-                    spotifyAuthService.clearCache();
-                    continue;
-                }
+    for (int attempt = 0; attempt < 2; ++attempt) {
+      try {
+        String url = String.format(
+            "https://ws.audioscrobbler.com/2.0/?method=track.getInfo&artist=%s&track=%s&api_key=%s&format=json",
+            URLEncoder.encode(artistName, StandardCharsets.UTF_8),
+            URLEncoder.encode(trackName, StandardCharsets.UTF_8),
+            this.apiKey);
+        URI uri = URI.create(url);
 
-                if (response.statusCode() == 429) {
-                    String retryAfter = response.headers().firstValue("Retry-After").orElse("1");
-                    int waitTime = Integer.parseInt(retryAfter) * 1000;
-                    System.out.println("Rate limited, waiting " + waitTime + "ms...");
-                    Thread.sleep(waitTime);
-                    continue;
-                }
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(uri)
+            .GET()
+            .timeout(Duration.ofSeconds(10))
+            .build();
 
-                // handle non-2xx responses
-                if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    System.err.println("Failed to get recently played track: " + response.statusCode() + " - " + response.body());
-                    return null;
-                }
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-                // parse successful response
-                SpotifyResponse data = objectMapper.readValue(
-                        response.body(), 
-                        SpotifyResponse.class
-                );
-
-                if (data.items() == null || data.items().isEmpty()) {
-                    return null;
-                }
-
-                SpotifyRecentTrack track = data.items().get(0).track();
-
-                StringBuilder artistNames = new StringBuilder();
-                for (int i = 0; i < track.album().artists().size(); i++) {
-                    artistNames.append(track.album().artists().get(i).name());
-                    if (i < track.album().artists().size() - 1) {
-                        artistNames.append(", ");
-                    }
-                }
-
-                return new CurrentPlayingRes(
-                        track.id(),
-                        artistNames.toString(),
-                        track.name(),
-                        0,
-                        track.duration_ms(),
-                        track.album().images().get(1).url(),
-                        track.uri(),
-                        track.album().uri().split(":")[2],
-                        false
-                );
-                
-            } catch (IOException | InterruptedException e) {
-                System.err.println("Error fetching recently played track (attempt " + (attempt + 1) + "): " + e.getMessage());
-                if (attempt == MAX_RETRIES - 1) {
-                    return null;
-                }
-            } catch (Exception e) {
-                System.err.println("Unexpected error: " + e.getMessage());
-                return null;
-            }
+        // wait and retry
+        if (response.statusCode() == 429) {
+          String retryAfter = response.headers().firstValue("Retry-After").orElse("1");
+          int waitTime = Integer.parseInt(retryAfter) * 1000;
+          System.out.println("Rate limited, waiting " + waitTime + "ms...");
+          Thread.sleep(waitTime);
+          continue;
         }
-        
-        return null;
-    }
 
+        // non-2xx responses
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+          System.err.println("Failed to get current track: " + response.statusCode() + " - " + response.body());
+          return null;
+        }
+
+        info = objectMapper.readValue(response.body(), FmTrackInfo.class);
+        break;
+      } catch (IOException | InterruptedException e) {
+        System.err.println("Error fetching current track (attempt " + (attempt + 1) + "): " + e.getMessage());
+        if (attempt == 1) {
+          return null;
+        }
+      } catch (Exception e) {
+        System.err.println("Unexpected error: " + e.getMessage());
+        return null;
+      }
+    }
+    return info;
+  }
 }

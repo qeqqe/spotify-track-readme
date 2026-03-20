@@ -3,347 +3,277 @@ package com.example.spotifycurrentreadme.services;
 import com.example.spotifycurrentreadme.types.CurrentPlayingRes;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Base64;
-import java.util.Random;
+import java.util.List;
 
 @Service
 public class SVGService {
-    private final TrackService trackService;
 
-    public SVGService(TrackService trackService) {
-        this.trackService = trackService;
+  private final TrackService trackService;
+
+  private final HttpClient httpClient;
+
+  public SVGService(TrackService trackService, HttpClient httpClient) {
+    this.trackService = trackService;
+    this.httpClient = httpClient;
+  }
+
+  private record Theme(
+      String gradStart,
+      String gradEnd,
+      String accent,
+      String track,
+      String textPri,
+      String textSec) {
+  }
+
+  private static final Theme THEME_RAP = new Theme("#0e0020", "#1e0840", "#c9a227", "#2e1850", "#ffffff", "#c9a227");
+  private static final Theme THEME_ROCK = new Theme("#1a0000", "#2d0808", "#e03030", "#3d1010", "#ffffff", "#e07575");
+  private static final Theme THEME_POP = new Theme("#25001a", "#1a000f", "#ff6b9d", "#380028", "#ffffff", "#ff9ec4");
+  private static final Theme THEME_INDIE = new Theme("#061410", "#0d2420", "#4ecdc4", "#163530", "#ffffff", "#88d8d3");
+  private static final Theme THEME_ELECTRONIC = new Theme("#00001f", "#08001a", "#00d4ff", "#0a0a35", "#ffffff",
+      "#80eaff");
+  private static final Theme THEME_LOVE = new Theme("#1a000e", "#2d0020", "#ff4081", "#3d0030", "#ffffff", "#ff80ab");
+  private static final Theme THEME_DEFAULT = new Theme("#141414", "#1e1e1e", "#aaaaaa", "#2e2e2e", "#ffffff",
+      "#888888");
+
+  private Theme resolveTheme(List<String> tags) {
+    if (tags == null || tags.isEmpty())
+      return THEME_DEFAULT;
+    for (String raw : tags) {
+      String t = raw.toLowerCase();
+      if (t.contains("trap") || t.contains("hip-hop") || t.contains("hip hop") || t.contains("rap"))
+        return THEME_RAP;
+      if (t.contains("rock"))
+        return THEME_ROCK;
+      if (t.contains("electronic") || t.contains("dance"))
+        return THEME_ELECTRONIC;
+      if (t.contains("alternative") || t.contains("indie"))
+        return THEME_INDIE;
+      if (t.contains("pop"))
+        return THEME_POP;
+      if (t.contains("love") || t.contains("romance") || t.contains("rnb") || t.contains("r&b"))
+        return THEME_LOVE;
     }
+    return THEME_DEFAULT;
+  }
 
-    public String generateSVG() {
-        CurrentPlayingRes track = trackService.getTrackInfo();
-        if(track.isPlaying()){
-            return generateNowPlayingSVG(track);
-        } else {
-            return generateRecentlyPlayedSVG(track);
-        }
-    }
+  public String generateSVG() {
+    CurrentPlayingRes track = trackService.getTrackInfo();
+    if (track == null)
+      return errorSVG();
+    Theme theme = resolveTheme(track.tags());
+    return track.isPlaying()
+        ? generateNowPlayingSVG(track, theme)
+        : generateRecentlyPlayedSVG(track, theme);
+  }
 
-    private String generateNowPlayingSVG(CurrentPlayingRes track){
-        int progressWidth = calculateProgressWidth(track.durationMs(), track.progressMs());
-        int remainingSeconds = calculateRemainingSeconds(track.durationMs(), track.progressMs());
+  private String generateNowPlayingSVG(CurrentPlayingRes track, Theme theme) {
+    long loopSec = Math.max(track.duration() / 1000, 1);
+    String art = getAlbumImageAsBase64(track.imageUrl());
 
-        return """
-            <svg width="400" height="120" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad" x1="0%%" y1="0%%" x2="100%%" y2="100%%">
-                        <stop offset="0%%" style="stop-color:#1DB954;stop-opacity:1" />
-                        <stop offset="100%%" style="stop-color:#191414;stop-opacity:1" />
-                    </linearGradient>
-                    <clipPath id="rounded">
-                        <rect width="400" height="120" rx="10" ry="10"/>
-                    </clipPath>
-                    <clipPath id="album-clip">
-                        <rect x="10" y="10" width="100" height="100" rx="8"/>
-                    </clipPath>
-                </defs>
-                
-                <style>
-                    @keyframes progressBar {
-                        from { width: %dpx; }
-                        to { width: 270px; }
-                    }
-                    
-                    @keyframes pulse {
-                        0%%, 100%% { opacity: 1; }
-                        50%% { opacity: 0.3; }
-                    }
-                    
-                    @keyframes eq1 {
-                        0%%, 100%% { height: 8px; }
-                        25%% { height: 15px; }
-                        50%% { height: 12px; }
-                        75%% { height: 18px; }
-                    }
-                    
-                    @keyframes eq1Y {
-                        0%%, 100%% { y: 92px; }
-                        25%% { y: 85px; }
-                        50%% { y: 88px; }
-                        75%% { y: 82px; }
-                    }
-                    
-                    @keyframes eq2 {
-                        0%%, 100%% { height: 15px; }
-                        25%% { height: 12px; }
-                        50%% { height: 18px; }
-                        75%% { height: 10px; }
-                    }
-                    
-                    @keyframes eq2Y {
-                        0%%, 100%% { y: 85px; }
-                        25%% { y: 88px; }
-                        50%% { y: 82px; }
-                        75%% { y: 90px; }
-                    }
-                    
-                    @keyframes eq3 {
-                        0%%, 100%% { height: 12px; }
-                        25%% { height: 18px; }
-                        50%% { height: 10px; }
-                        75%% { height: 8px; }
-                    }
-                    
-                    @keyframes eq3Y {
-                        0%%, 100%% { y: 88px; }
-                        25%% { y: 82px; }
-                        50%% { y: 90px; }
-                        75%% { y: 92px; }
-                    }
-                    
-                    @keyframes eq4 {
-                        0%%, 100%% { height: 18px; }
-                        25%% { height: 10px; }
-                        50%% { height: 8px; }
-                        75%% { height: 15px; }
-                    }
-                    
-                    @keyframes eq4Y {
-                        0%%, 100%% { y: 82px; }
-                        25%% { y: 90px; }
-                        50%% { y: 92px; }
-                        75%% { y: 85px; }
-                    }
-                    
-                    @keyframes eq5 {
-                        0%%, 100%% { height: 10px; }
-                        25%% { height: 8px; }
-                        50%% { height: 15px; }
-                        75%% { height: 12px; }
-                    }
-                    
-                    @keyframes eq5Y {
-                        0%%, 100%% { y: 90px; }
-                        25%% { y: 92px; }
-                        50%% { y: 85px; }
-                        75%% { y: 88px; }
-                    }
-                    
-                    .progress-bar {
-                        animation: progressBar %ds linear forwards;
-                    }
-                    
-                    .pulse-indicator {
-                        animation: pulse 1.5s ease-in-out infinite;
-                    }
-                    
-                    .eq-bar-1 {
-                        animation: eq1 0.6s ease-in-out infinite, eq1Y 0.6s ease-in-out infinite;
-                    }
-                    
-                    .eq-bar-2 {
-                        animation: eq2 0.7s ease-in-out infinite, eq2Y 0.7s ease-in-out infinite;
-                    }
-                    
-                    .eq-bar-3 {
-                        animation: eq3 0.8s ease-in-out infinite, eq3Y 0.8s ease-in-out infinite;
-                    }
-                    
-                    .eq-bar-4 {
-                        animation: eq4 0.9s ease-in-out infinite, eq4Y 0.9s ease-in-out infinite;
-                    }
-                    
-                    .eq-bar-5 {
-                        animation: eq5 1.0s ease-in-out infinite, eq5Y 1.0s ease-in-out infinite;
-                    }
-                </style>
-                
-                <!-- Background -->
-                <rect width="400" height="120" fill="url(#grad)" clip-path="url(#rounded)"/>
-                
-                <!-- Album Art with rounded corners -->
-                <image x="10" y="10" width="100" height="100" 
-                       href="%s" clip-path="url(#album-clip)"/>
-                
-                <!-- Song Title -->
-                <text x="120" y="35" fill="white" 
-                      font-family="Arial, sans-serif" 
-                      font-size="16" 
-                      font-weight="bold">
-                    %s
-                </text>
-                
-                <!-- Artist Name -->
-                <text x="120" y="55" fill="#b3b3b3" 
-                      font-family="Arial, sans-serif" 
-                      font-size="13">
-                    %s
-                </text>
-                
-                <!-- Progress Bar Background -->
-                <rect x="120" y="70" width="270" height="4" 
-                      fill="#404040" rx="2"/>
-                
-                <!-- Progress Bar Fill with CSS animation -->
-                <rect class="progress-bar" x="120" y="70" width="%d" height="4" 
-                      fill="#1DB954" rx="2"/>
-                
-                <!-- Time stamp -->
-                <text x="385" y="90" fill="#b3b3b3" 
-                      font-family="Arial, sans-serif" 
-                      font-size="11" 
-                      text-anchor="end">
-                    %s
-                </text>
-                
-                <!-- Equalizer bars with CSS animations -->
-                <rect class="eq-bar-1" x="130" y="92" width="4" height="8" fill="#1DB954" rx="2"/>
-                <rect class="eq-bar-2" x="136" y="85" width="4" height="15" fill="#1DB954" rx="2"/>
-                <rect class="eq-bar-3" x="142" y="88" width="4" height="12" fill="#1DB954" rx="2"/>
-                <rect class="eq-bar-4" x="148" y="82" width="4" height="18" fill="#1DB954" rx="2"/>
-                <rect class="eq-bar-5" x="154" y="90" width="4" height="10" fill="#1DB954" rx="2"/>
-                
-                <!-- Playing indicator with CSS animation -->
-                <circle class="pulse-indicator" cx="385" cy="25" r="3" fill="#1DB954"/>
-            </svg>
-            """.formatted(
-                progressWidth,
-                remainingSeconds,
-                getAlbumImageAsBase64(track.imageUrl()),
-                truncateText(track.name(), 22),
-                truncateText(track.artist(), 25),
-                progressWidth,
-                formatTime(track.durationMs())
-        );
-    }
-
-    private String generateRecentlyPlayedSVG(CurrentPlayingRes track) {
-        long randomProgress = track.durationMs() * (30 + new Random().nextInt(41)) / 100;
-        int progressWidth = calculateProgressWidth(track.durationMs(), randomProgress);
-
-        return """
+    return """
         <svg width="400" height="120" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="recent-grad" x1="0%%" y1="0%%" x2="100%%" y2="100%%">
-                    <stop offset="0%%" style="stop-color:#2a2a2a;stop-opacity:1" />
-                    <stop offset="100%%" style="stop-color:#1a1a1a;stop-opacity:1" />
-                </linearGradient>
-                <clipPath id="rounded">
-                    <rect width="400" height="120" rx="10" ry="10"/>
-                </clipPath>
-                <clipPath id="album-clip">
-                    <rect x="10" y="10" width="100" height="100" rx="8"/>
-                </clipPath>
-            </defs>
-            
-            <!-- Background (muted dark) -->
-            <rect width="400" height="120" fill="url(#recent-grad)" clip-path="url(#rounded)"/>
-            
-            <!-- Album Art (slightly dimmed) -->
-            <image x="10" y="10" width="100" height="100" 
-                   href="%s" 
-                   clip-path="url(#album-clip)"
-                   opacity="0.7"/>
-            
-            <!-- Song Title -->
-            <text x="120" y="30" fill="#b3b3b3" 
-                  font-family="Arial, sans-serif" 
-                  font-size="15" 
-                  font-weight="600">
-                %s
-            </text>
-            
-            <!-- Artist Name -->
-            <text x="120" y="50" fill="#888888" 
-                  font-family="Arial, sans-serif" 
-                  font-size="12">
-                %s
-            </text>
-            
-            <!-- "Recently played" indicator -->
-            <text x="120" y="68" fill="#666666" 
-                  font-family="Arial, sans-serif" 
-                  font-size="10"
-                  font-style="italic">
-                Recently played
-            </text>
-            
-            <!-- Progress Bar Background (dimmed) -->
-            <rect x="120" y="78" width="270" height="3" 
-                  fill="#2a2a2a" rx="2"/>
-            
-            <!-- Static Progress Bar (no animation) -->
-            <rect x="120" y="78" width="%d" height="3" 
-                  fill="#666666" rx="2"/>
-            
-            <!-- Time stamps (muted) -->
-            <text x="120" y="95" fill="#666666" 
-                  font-family="Arial, sans-serif" 
-                  font-size="10">
-                %s
-            </text>
-            <text x="385" y="95" fill="#666666" 
-                  font-family="Arial, sans-serif" 
-                  font-size="10" 
-                  text-anchor="end">
-                %s
-            </text>
-            
-            <!-- Paused indicator (replaces playing dot) -->
-            <circle cx="385" cy="25" r="3" fill="#666666" opacity="0.6"/>
+          <defs>
+            <linearGradient id="bg" x1="0%%" y1="0%%" x2="100%%" y2="100%%">
+              <stop offset="0%%"   style="stop-color:%s;stop-opacity:1"/>
+              <stop offset="100%%" style="stop-color:%s;stop-opacity:1"/>
+            </linearGradient>
+            <clipPath id="card"><rect width="400" height="120" rx="12"/></clipPath>
+            <clipPath id="art" ><rect x="10" y="10" width="100" height="100" rx="8"/></clipPath>
+          </defs>
+          <style>
+            @keyframes progress {
+              from { width: 0px; }
+              to   { width: 270px; }
+            }
+            @keyframes pulse {
+              0%%,100%% { opacity:1;   r:3.5; }
+              50%%      { opacity:0.3; r:5.5; }
+            }
+            @keyframes eq1 { 0%%,100%% {height:7px; y:95px} 50%% {height:18px;y:84px} }
+            @keyframes eq2 { 0%%,100%% {height:14px;y:88px} 50%% {height:7px; y:95px} }
+            @keyframes eq3 { 0%%,100%% {height:11px;y:91px} 50%% {height:20px;y:82px} }
+            @keyframes eq4 { 0%%,100%% {height:18px;y:84px} 50%% {height:9px; y:93px} }
+            @keyframes eq5 { 0%%,100%% {height:9px; y:93px} 50%% {height:15px;y:87px} }
+            .prog { animation: progress %ds linear forwards; }
+            .dot  { animation: pulse 1.5s ease-in-out infinite; }
+            .eq1  { animation: eq1 0.55s ease-in-out infinite; }
+            .eq2  { animation: eq2 0.70s ease-in-out infinite; }
+            .eq3  { animation: eq3 0.50s ease-in-out infinite; }
+            .eq4  { animation: eq4 0.80s ease-in-out infinite; }
+            .eq5  { animation: eq5 0.65s ease-in-out infinite; }
+          </style>
+
+          <rect width="400" height="120" fill="url(#bg)" clip-path="url(#card)"/>
+          <image x="10" y="10" width="100" height="100" href="%s" clip-path="url(#art)"/>
+
+          <text x="120" y="33"
+                fill="%s" font-family="Arial,sans-serif" font-size="15" font-weight="bold">
+            %s
+          </text>
+          <text x="120" y="51"
+                fill="%s" font-family="Arial,sans-serif" font-size="12">
+            %s
+          </text>
+
+          <rect x="120" y="78" width="270" height="4" fill="%s" rx="2"/>
+          <rect class="prog" x="120" y="78" width="0" height="4" fill="%s" rx="2"/>
+
+          <text x="390" y="96"
+                fill="%s" font-family="Arial,sans-serif" font-size="10" text-anchor="end">
+            %s
+          </text>
+
+          <rect class="eq1" x="126" y="95" width="4" height="7"  fill="%s" rx="1"/>
+          <rect class="eq2" x="132" y="88" width="4" height="14" fill="%s" rx="1"/>
+          <rect class="eq3" x="138" y="91" width="4" height="11" fill="%s" rx="1"/>
+          <rect class="eq4" x="144" y="84" width="4" height="18" fill="%s" rx="1"/>
+          <rect class="eq5" x="150" y="93" width="4" height="9"  fill="%s" rx="1"/>
+
+          <circle class="dot" cx="386" cy="20" r="3.5" fill="%s"/>
         </svg>
         """.formatted(
-                getAlbumImageAsBase64(track.imageUrl()),
-                truncateText(track.name(), 22),
-                truncateText(track.artist(), 30),
-                progressWidth,
-                formatTime(randomProgress),
-                formatTime(track.durationMs())
-        );
-    }
+        theme.gradStart(), theme.gradEnd(),
+        loopSec,
+        art,
+        theme.textPri(), truncateText(track.name(), 24),
+        theme.textSec(), truncateText(track.artist(), 28),
+        theme.track(), theme.accent(),
+        theme.textSec(), formatTime(track.duration()),
+        theme.accent(), theme.accent(), theme.accent(), theme.accent(), theme.accent(),
+        theme.accent());
+  }
 
-    private int calculateProgressWidth(long durationMs, long progressMs) {
-        double progress = (double) progressMs / durationMs;
-        return (int) (270 * progress);
-    }
+  private String generateRecentlyPlayedSVG(CurrentPlayingRes track, Theme theme) {
+    String art = getAlbumImageAsBase64(track.imageUrl());
 
-    private int calculateRemainingSeconds(long durationMs, long progressMs) {
-        return (int) ((durationMs - progressMs) / 1000);
-    }
+    return """
+        <svg width="400" height="120" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg" x1="0%%" y1="0%%" x2="100%%" y2="100%%">
+              <stop offset="0%%"   style="stop-color:%s;stop-opacity:1"/>
+              <stop offset="100%%" style="stop-color:%s;stop-opacity:1"/>
+            </linearGradient>
+            <clipPath id="card"><rect width="400" height="120" rx="12"/></clipPath>
+            <clipPath id="art" ><rect x="10" y="10" width="100" height="100" rx="8"/></clipPath>
+          </defs>
 
-    private String formatTime(long ms) {
-        long seconds = ms / 1000;
-        long minutes = seconds / 60;
-        seconds = seconds % 60;
-        return String.format("%d:%02d", minutes, seconds);
-    }
+          <rect width="400" height="120" fill="url(#bg)" clip-path="url(#card)"/>
+          <image x="10" y="10" width="100" height="100"
+                 href="%s" clip-path="url(#art)" opacity="0.55"/>
 
-    private String truncateText(String text, int maxLength) {
-        if (text.length() <= maxLength) {
-            return escapeXml(text);
+          <text x="120" y="33"
+                fill="%s" font-family="Arial,sans-serif" font-size="15" font-weight="600">
+            %s
+          </text>
+          <text x="120" y="51"
+                fill="%s" font-family="Arial,sans-serif" font-size="12">
+            %s
+          </text>
+          <text x="120" y="67"
+                fill="%s" font-family="Arial,sans-serif" font-size="10" font-style="italic">
+            Recently played
+          </text>
+
+          <!-- Static full bar (dimmed) -->
+          <rect x="120" y="78" width="270" height="3" fill="%s" rx="2"/>
+          <rect x="120" y="78" width="270" height="3" fill="%s" rx="2" opacity="0.2"/>
+
+          <text x="120" y="95"
+                fill="%s" font-family="Arial,sans-serif" font-size="10">
+            0:00
+          </text>
+          <text x="390" y="95"
+                fill="%s" font-family="Arial,sans-serif" font-size="10" text-anchor="end">
+            %s
+          </text>
+
+          <!-- Inactive dot -->
+          <circle cx="390" cy="20" r="3" fill="%s" opacity="0.35"/>
+        </svg>
+        """.formatted(
+        theme.gradStart(), theme.gradEnd(),
+        art,
+        theme.textSec(), truncateText(track.name(), 24),
+        theme.textSec(), truncateText(track.artist(), 28),
+        theme.textSec(),
+        theme.track(), theme.accent(),
+        theme.textSec(), theme.textSec(), formatTime(track.duration()),
+        theme.accent());
+  }
+
+  private String errorSVG() {
+    return """
+        <svg width="400" height="60" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="60" fill="#141414" rx="12"/>
+          <text x="200" y="36"
+                fill="#666" font-family="Arial,sans-serif" font-size="13" text-anchor="middle">
+            Nothing playing right now
+          </text>
+        </svg>
+        """;
+  }
+
+  private String formatTime(long ms) {
+    long sec = ms / 1000;
+    return String.format("%d:%02d", sec / 60, sec % 60);
+  }
+
+  private String truncateText(String text, int max) {
+    if (text == null)
+      return "";
+    String escaped = escapeXml(text);
+    return escaped.length() <= max ? escaped : escaped.substring(0, max - 1) + "…";
+  }
+
+  private String escapeXml(String text) {
+    return text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;");
+  }
+
+  private String getAlbumImageAsBase64(String imageUrl) {
+    if (imageUrl == null || imageUrl.isBlank())
+      return "";
+
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        HttpRequest req = HttpRequest.newBuilder()
+            .uri(URI.create(imageUrl))
+            .header("User-Agent", "Mozilla/5.0 (compatible; music-widget/1.0)")
+            .timeout(Duration.ofSeconds(8))
+            .GET()
+            .build();
+
+        HttpResponse<byte[]> res = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
+
+        if (res.statusCode() < 200 || res.statusCode() >= 300) {
+          System.err.println("Image fetch failed: " + res.statusCode() + " attempt " + (attempt + 1));
+          continue;
         }
-        return escapeXml(text.substring(0, maxLength - 3)) + "...";
-    }
 
-    private String escapeXml(String text) {
-        return text.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
-    }
+        String mime = res.headers()
+            .firstValue("content-type")
+            .orElse("image/jpeg")
+            .split(";")[0]
+            .trim();
 
-    private String getAlbumImageAsBase64(String imageUrl) {
-        try {
-            URL url = new URL(imageUrl);
-            URLConnection connection = url.openConnection();
-            String mimeType = connection.getContentType();
-            if (mimeType == null) {
-                mimeType = "image/jpeg";
-            }
-            java.io.InputStream in = connection.getInputStream();
-            byte[] bytes = in.readAllBytes();
-            String base64 = Base64.getEncoder().encodeToString(bytes);
-            return "data:" + mimeType + ";base64," + base64;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
-        }
+        return "data:" + mime + ";base64," + Base64.getEncoder().encodeToString(res.body());
+
+      } catch (Exception e) {
+        System.err.println("Image fetch error attempt " + (attempt + 1) + ": " + e.getMessage());
+      }
     }
+    return "";
+  }
 }

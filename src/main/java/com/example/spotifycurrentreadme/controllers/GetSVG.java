@@ -12,24 +12,24 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/")
 public class GetSVG {
-    private final SVGService svgService;
+  private final SVGService svgService;
 
-    public GetSVG(SVGService svgService) {
-        this.svgService = svgService;
-    }
+  public GetSVG(SVGService svgService) {
+    this.svgService = svgService;
+  }
 
-    @GetMapping("/health")
-    public String healthCheck() {
-        return "OK";
-    }
+  @GetMapping("/health")
+  public String healthCheck() {
+    return "OK";
+  }
 
-    @GetMapping(path = "/spotify-track.svg", produces = "image/svg+xml; charset=utf-8")
-    public ResponseEntity<String> getCurrentTrack() {
-        String svg = svgService.generateSVG();
+  @GetMapping(path = "/current-track.svg", produces = "image/svg+xml; charset=utf-8")
+  public ResponseEntity<String> getCurrentTrack() {
+    String svg = svgService.generateSVG();
 
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(120, TimeUnit.SECONDS).cachePublic())
-                .header("Content-Type", "image/svg+xml; charset=utf-8")
-                .body(svg);
-    }
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.maxAge(120, TimeUnit.SECONDS).cachePublic())
+        .header("Content-Type", "image/svg+xml; charset=utf-8")
+        .body(svg);
+  }
 }
