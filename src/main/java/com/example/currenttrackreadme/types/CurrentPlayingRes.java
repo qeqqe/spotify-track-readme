@@ -1,4 +1,4 @@
-package com.example.spotifycurrentreadme.types;
+package com.example.currenttrackreadme.types;
 
 import java.util.List;
 

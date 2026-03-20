@@ -1,6 +1,6 @@
-package com.example.spotifycurrentreadme.services;
+package com.example.currenttrackreadme.services;
 
-import com.example.spotifycurrentreadme.types.CurrentPlayingRes;
+import com.example.currenttrackreadme.types.CurrentPlayingRes;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;

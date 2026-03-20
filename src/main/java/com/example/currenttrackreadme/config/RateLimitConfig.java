@@ -1,4 +1,4 @@
-package com.example.spotifycurrentreadme.config;
+package com.example.currenttrackreadme.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;

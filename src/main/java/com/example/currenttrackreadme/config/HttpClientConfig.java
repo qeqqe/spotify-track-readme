@@ -1,4 +1,4 @@
-package com.example.spotifycurrentreadme.config;
+package com.example.currenttrackreadme.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

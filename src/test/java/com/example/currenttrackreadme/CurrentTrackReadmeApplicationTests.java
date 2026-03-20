@@ -1,10 +1,10 @@
-package com.example.spotifycurrentreadme;
+package com.example.currenttrackreadme;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class SpotifyCurrentReadmeApplicationTests {
+class CurrentTrackReadmeApplicationTests {
 
     @Test
     void contextLoads() {

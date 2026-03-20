@@ -1,5 +1,5 @@
 
-package com.example.spotifycurrentreadme.types;
+package com.example.currenttrackreadme.types;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

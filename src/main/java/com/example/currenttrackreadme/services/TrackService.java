@@ -1,8 +1,8 @@
-package com.example.spotifycurrentreadme.services;
+package com.example.currenttrackreadme.services;
 
-import com.example.spotifycurrentreadme.types.CurrentPlayingRes;
-import com.example.spotifycurrentreadme.types.FmCurrentPlaying;
-import com.example.spotifycurrentreadme.types.FmTrackInfo;
+import com.example.currenttrackreadme.types.CurrentPlayingRes;
+import com.example.currenttrackreadme.types.FmCurrentPlaying;
+import com.example.currenttrackreadme.types.FmTrackInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;

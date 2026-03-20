@@ -1,6 +1,6 @@
-package com.example.spotifycurrentreadme.config;
+package com.example.currenttrackreadme.config;
 
-import com.example.spotifycurrentreadme.interceptor.RateLimitInterceptor;
+import com.example.currenttrackreadme.interceptor.RateLimitInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

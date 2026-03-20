@@ -1,6 +1,6 @@
-package com.example.spotifycurrentreadme.controllers;
+package com.example.currenttrackreadme.controllers;
 
-import com.example.spotifycurrentreadme.services.SVGService;
+import com.example.currenttrackreadme.services.SVGService;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

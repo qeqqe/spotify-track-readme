@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>spotify-current-readme</artifactId>
+    <artifactId>current-track-readme</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>spotify-current-readme</name>
-    <description>spotify-current-readme</description>
+    <name>current-track-readme</name>
+    <description>current-track-readme</description>
     <url/>
     <licenses>
         <license/>

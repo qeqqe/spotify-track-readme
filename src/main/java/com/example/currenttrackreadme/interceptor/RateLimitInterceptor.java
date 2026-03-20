@@ -1,6 +1,6 @@
-package com.example.spotifycurrentreadme.interceptor;
+package com.example.currenttrackreadme.interceptor;
 
-import com.example.spotifycurrentreadme.config.RateLimitConfig;
+import com.example.currenttrackreadme.config.RateLimitConfig;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
